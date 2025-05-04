@@ -221,15 +221,30 @@
           // Babybett Badge
           const babybedBadge=e.babybed?'<div class="text-xs font-semibold text-pink-700 border border-pink-700 px-2 py-1 rounded bg-pink-50 mt-1">Babybett</div>':'';
           // Inner HTML
-          li.innerHTML=`
-            <div>
-              <div class="font-medium">${e.guestName}</div>
-              <div class="text-sm text-gray-500">${e.apartmentName}</div>
-              ${timeBadge}
-              ${babybedBadge}
-            </div>
-            <div class="status ${statusClass(type,st)}">${st}</div>
-          `;
+        li.innerHTML=`
+  <div>
+   <div class="text-sm text-gray-500">${e.guestName}</div>
+<div class="font-medium">${e.apartmentName}</div>
+
+    <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center flex-wrap">
+      <div class="flex items-center gap-1">
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        ${e.checkTime || 'n/a'}
+      </div>
+      <div class="flex items-center gap-1">
+        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        ${e.guests || 1} Pers.
+      </div>
+    </div>
+    ${babybedBadge}
+  </div>
+  <div class="status ${statusClass(type,st)}">${st}</div>
+`;
+
           const badge=li.querySelector('.status');
           li.addEventListener('click',()=>{if(type==='checkout')showDetailPage(e);else showModal(type,st,badge,key);});
           return li;
@@ -241,4 +256,5 @@
   </script>
 </body>
 </html>
+
 
