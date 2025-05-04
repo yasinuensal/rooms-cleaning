@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROOMS Daily Cleaning Plan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-white text-gray-800 font-sans p-6">
+  <div class="max-w-4xl mx-auto">
+
+    <!-- Übersicht -->
+    <div id="overviewPage">
+      <h1 class="text-3xl font-bold text-center mb-8">ROOMS Daily Cleaning Plan</h1>
+
+      <div class="flex items-center justify-center gap-4 mb-10">
+        <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
+        <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
+        <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
+      </div>
+
+      <div id="loading" class="text-center text-gray-500 mb-6 hidden">Lade Daten...</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+        <div>
+          <h2 class="text-xl font-semibold flex items-center gap-2">
+            <span>Check-outs</span>
+            <span id="countCheckouts" class="text-gray-500 font-normal text-base ml-2">(0)</span>
+          </h2>
+          <p id="checkoutsEmpty" class="italic text-gray-500 hidden">Keine Check-outs</p>
+          <ul id="checkoutsList" class="space-y-2"></ul>
+        </div>
+        <div>
+          <h2 class="text-xl font-semibold flex items-center gap-2">
+            <span>Check-ins</span>
+            <span id="countCheckins" class="text-gray-500 font-normal text-base ml-2">(0)</span>
+          </h2>
+          <p id="checkinsEmpty" class="italic text-gray-500 hidden">Keine Check-ins</p>
+          <ul id="checkinsList" class="space-y-2"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailansicht -->
+    <div id="detailPage" class="hidden">
+      <button id="backToOverview" class="mb-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold shadow">
+        Zurück zur Übersicht
+      </button>
+      <h2 class="text-2xl font-bold mb-4">Buchung Detail</h2>
+
+      <div id="bookingDetail" class="bg-gray-50 p-4 rounded-xl shadow mb-6 flex justify-between items-center">
+        <!-- Dynamisch per JS -->
+      </div>
+
+      <div class="flex gap-4 mb-6">
+        <button id="addDamage" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Add Damage</button>
+        <button id="addFoundItem" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add Found Item</button>
+      </div>
+
+      <div>
+        <h3 class="text-xl font-semibold mb-2">Besonderheiten</h3>
+        <ul id="specialNotes" class="space-y-4"></ul>
+      </div>
+    </div>
+
+    <!-- Status-Änderungs-Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
+        <h3 class="text-lg font-semibold mb-4">Status ändern?</h3>
+        <p id="modalMessage" class="text-sm text-gray-600 mb-6"></p>
+        <div class="flex justify-center gap-4">
+          <button id="modalCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+          <button id="modalConfirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ja, ändern</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note-Modal (Damage / Found Item) -->
+    <div id="noteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
+        <h3 id="noteModalTitle" class="text-xl font-semibold mb-4">Eintrag hinzufügen</h3>
+        <div class="mb-4">
+          <label for="noteText" class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
+          <input type="text" id="noteText" class="w-full border rounded px-3 py-2" />
+        </div>
+        <div class="mb-4">
+          <label for="notePhoto" class="block text-sm font-medium text-gray-700 mb-1">Foto (optional)</label>
+          <input type="file" id="notePhoto" accept="image/*" class="w-full" />
+        </div>
+        <div class="flex justify-end gap-4">
+          <button id="noteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+          <button id="noteSave" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Speichern</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete-Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
+        <h3 class="text-lg font-semibold mb-4">Eintrag löschen?</h3>
+        <p class="text-sm text-gray-600 mb-6">Soll dieser Eintrag wirklich gelöscht werden?</p>
+        <div class="flex justify-center gap-4">
+          <button id="deleteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+          <button id="deleteConfirm" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Löschen</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentStatus, newStatus, badgeRef, keyRef, typeRef;
+    let currentBooking = null;
+    let pendingFormType = null;
+    let pendingDeleteIndex = null;
+    const demoNotes = [
+      { type: 'Damage', text: 'Glas zerbrochen', photo: null },
+      { type: 'Found Item', text: 'Es wurde eine Brille gefunden', photo: null }
+    ];
+
+    // --- Hilfsfunktionen für Status ---
+    function getStatusKey(d, type, name, apt) {
+      return `status-${d}-${type}-${name}-${apt}`;
+    }
+    function getStoredStatus(key) {
+      return localStorage.getItem(key);
+    }
+    function storeStatus(key, val) {
+      localStorage.setItem(key, val);
+    }
+    function toggleStatus(type, cur) {
+      return type==='checkin'
+        ? (cur==='ready'?'not ready':'ready')
+        : (cur==='clean'?'not clean':'clean');
+    }
+    function statusClass(type, status) {
+      const base = "px-3 py-1 text-xs font-semibold rounded-full border ";
+      const good = (type==='checkin'&&status==='ready')||(type==='checkout'&&status==='clean');
+      return base + (good?'text-green-600 border-green-600':'text-red-600 border-red-600');
+    }
+
+    // --- Modal-Steuerung ---
+    function showModal(type, status, badge, key) {
+      currentStatus = status;
+      newStatus = toggleStatus(type, status);
+      badgeRef = badge;
+      keyRef = key;
+      typeRef = type;
+      document.getElementById('modalMessage').textContent =
+        `Status von "${currentStatus}" zu "${newStatus}" ändern?`;
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+    function hideModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+    function showNoteModal(type) {
+      pendingFormType = type;
+      document.getElementById('noteModalTitle').textContent =
+        type==='Damage' ? 'Beschädigung hinzufügen' : 'Fundgegenstand hinzufügen';
+      document.getElementById('noteText').value = '';
+      document.getElementById('notePhoto').value = '';
+      document.getElementById('noteModal').classList.remove('hidden');
+    }
+    function showDeleteModal(index) {
+      pendingDeleteIndex = index;
+      document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    // --- Darstellung der Notizen ---
+    function renderNotes() {
+      const ul = document.getElementById('specialNotes');
+      ul.innerHTML = '';
+      if (demoNotes.length === 0) {
+        ul.innerHTML = '<li class="italic text-gray-500">Keine Einträge</li>';
+        return;
+      }
+      demoNotes.forEach((note, i) => {
+        const li = document.createElement('li');
+        li.className = 'bg-white border border-gray-300 p-4 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start gap-4';
+        const divText = document.createElement('div');
+        divText.className = 'flex-1';
+        divText.innerHTML = `<strong>${note.type}:</strong> ${note.text}`;
+        li.appendChild(divText);
+        if (note.photo) {
+          const img = document.createElement('img');
+          img.src = note.photo;
+          img.alt = note.type;
+          img.className = 'w-24 h-24 object-cover rounded-lg border';
+          li.appendChild(img);
+        }
+        const btn = document.createElement('button');
+        btn.className = 'text-red-500 hover:text-red-700 self-end';
+        btn.title = 'Löschen';
+        btn.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        `;
+        btn.addEventListener('click', () => showDeleteModal(i));
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+    }
+
+    // --- Detailansicht anzeigen ---
+    function showDetailPage(b) {
+      currentBooking = b;
+      const d = document.getElementById('datum').value;
+      const key = getStatusKey(d, 'checkout', b.guestName, b.apartmentName);
+      const status = getStoredStatus(key) || 'not clean';
+
+      document.getElementById('overviewPage').classList.add('hidden');
+      document.getElementById('detailPage').classList.remove('hidden');
+
+      document.getElementById('bookingDetail').innerHTML = `
+        <div>
+          <div class="text-sm text-gray-800">${b.guestName}</div>
+          <div class="text-base text-gray-800 font-bold">${b.apartmentName}</div>
+          <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center">
+            <div class="flex items-center gap-1">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>${b.checkTime}
+            </div>
+            <div class="flex items-center gap-1">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>${b.guests} Pers.
+            </div>
+            ${b.babybed ? '<div class="text-xs bg-pink-50 text-pink-700 px-2 py-1 rounded border border-pink-700">Babybett</div>' : ''}
+          </div>
+        </div>
+        <div id="detailStatus" class="status cursor-pointer ${statusClass('checkout', status)}">${status}</div>
+      `;
+      document.getElementById('detailStatus').addEventListener('click', () =>
+        showModal('checkout', status, document.getElementById('detailStatus'), key)
+      );
+      renderNotes();
+    }
+
+    // --- Initialisierung und Event-Handler ---  
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('datum');
+      input.value = new Date().toISOString().slice(0,10);
+      ladeCheckinsUndCheckouts(input.value);
+
+      document.getElementById('prevDay').addEventListener('click', () => {
+        const d = new Date(input.value);
+        d.setDate(d.getDate() - 1);
+        input.value = d.toISOString().slice(0,10);
+        ladeCheckinsUndCheckouts(input.value);
+      });
+      document.getElementById('nextDay').addEventListener('click', () => {
+        const d = new Date(input.value);
+        d.setDate(d.getDate() + 1);
+        input.value = d.toISOString().slice(0,10);
+        ladeCheckinsUndCheckouts(input.value);
+      });
+      input.addEventListener('change', () => ladeCheckinsUndCheckouts(input.value));
+
+      // Zurück-Button
+      document.getElementById('backToOverview').addEventListener('click', () => {
+        document.getElementById('detailPage').classList.add('hidden');
+        document.getElementById('overviewPage').classList.remove('hidden');
+        ladeCheckinsUndCheckouts(document.getElementById('datum').value);
+      });
+
+      // Status-Modal
+      document.getElementById('modalCancel').addEventListener('click', () => hideModal('confirmModal'));
+      document.getElementById('modalConfirm').addEventListener('click', () => {
+        badgeRef.textContent = newStatus;
+        badgeRef.className = 'status ' + statusClass(typeRef, newStatus);
+        storeStatus(keyRef, newStatus);
+        hideModal('confirmModal');
+      });
+
+      // Note-Modal
+      document.getElementById('noteCancel').addEventListener('click', () => hideModal('noteModal'));
+      document.getElementById('noteSave').addEventListener('click', () => {
+        const text = document.getElementById('noteText').value.trim();
+        if (!text) { alert('Bitte Beschreibung eingeben.'); return; }
+        let photo = null;
+        const f = document.getElementById('notePhoto').files[0];
+        if (f) photo = URL.createObjectURL(f);
+        demoNotes.push({ type: pendingFormType, text, photo });
+        renderNotes();
+        hideModal('noteModal');
+      });
+      document.getElementById('addDamage').addEventListener('click', () => showNoteModal('Damage'));
+      document.getElementById('addFoundItem').addEventListener('click', () => showNoteModal('Found Item'));
+
+      // Delete-Modal
+      document.getElementById('deleteCancel').addEventListener('click', () => hideModal('deleteModal'));
+      document.getElementById('deleteConfirm').addEventListener('click', () => {
+        if (pendingDeleteIndex !== null) {
+          demoNotes.splice(pendingDeleteIndex, 1);
+          renderNotes();
+        }
+        hideModal('deleteModal');
+      });
+    });
+
+    // --- API-Aufruf für Check-ins und Check-outs ---
+    async function ladeCheckinsUndCheckouts(datum) {
+      document.getElementById('loading').style.display = 'block';
+      try {
+        const res = await fetch(`/api/checkins-checkouts?datum=${datum}`);
+        const data = await res.json();
+        const ciList = document.getElementById('checkinsList');
+        const coList = document.getElementById('checkoutsList');
+        document.getElementById('countCheckins').textContent = `(${data.checkins.length})`;
+        document.getElementById('countCheckouts').textContent = `(${data.checkouts.length})`;
+        ciList.innerHTML = '';
+        coList.innerHTML = '';
+        document.getElementById('checkinsEmpty').style.display = data.checkins.length === 0 ? 'block' : 'none';
+        document.getElementById('checkoutsEmpty').style.display = data.checkouts.length === 0 ? 'block' : 'none';
+
+        function createEntry(e, type) {
+          const key = getStatusKey(datum, type, e.guestName, e.apartmentName);
+          const status = getStoredStatus(key) || (type === 'checkin' ? 'not ready' : 'not clean');
+          const li = document.createElement('li');
+          li.className = 'bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer flex justify-between items-center transform transition active:scale-[0.97]';
+          li.innerHTML = `
+            <div>
+              <div class="text-sm text-gray-800">${e.guestName}</div>
+              <div class="text-base text-gray-800 font-bold">${e.apartmentName}</div>
+              <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center">
+                <div class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>${e.checkTime}
+                </div>
+                <div class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>${e.guests} Pers.
+                </div>
+                ${e.babybed ? '<div class="text-xs bg-pink-50 text-pink-700 px-2 py-1 rounded border border-pink-700">Babybett</div>' : ''}
+              </div>
+            </div>
+            <div class="status ${statusClass(type, status)}">${status}</div>
+          `;
+          const badge = li.querySelector('.status');
+          li.addEventListener('click', () => {
+            if (type === 'checkout') {
+              showDetailPage(e);
+            } else {
+              showModal(type, badge.textContent.trim(), badge, key);
+            }
+          });
+          return li;
+        }
+
+        data.checkins.forEach(e => ciList.appendChild(createEntry(e, 'checkin')));
+        data.checkouts.forEach(e => coList.appendChild(createEntry(e, 'checkout')));
+      } catch (err) {
+        alert('Fehler beim Laden der Daten');
+        console.error(err);
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
