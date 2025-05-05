@@ -12,23 +12,19 @@
     <!-- Übersicht -->
     <div id="overviewPage">
       <h1 class="text-3xl font-bold text-center mb-8">ROOMS Daily Cleaning Plan</h1>
-<div class="max-w-4xl mx-auto relative">
-  <div class="flex items-center justify-center gap-4 mb-10">
-    <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
-    <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
-    <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
-  </div>
-
-  <div id="loading" class="absolute top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded shadow text-gray-600 text-sm hidden z-50">
-    <svg class="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-    </svg>
-  </div>
-</div>
-
-
-
+      <div class="max-w-4xl mx-auto relative">
+        <div class="flex items-center justify-center gap-4 mb-10">
+          <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
+          <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
+          <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
+        </div>
+        <div id="loading" class="absolute top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded shadow text-gray-600 text-sm hidden z-50">
+          <svg class="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        </div>
+      </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
         <div>
@@ -118,181 +114,261 @@
   </div>
 
   <script>
+    // === Zustand & Buchungsspezifische Notizen ===
     let currentStatus, newStatus, badgeRef, keyRef, typeRef;
-    let currentBooking = null;
-    let pendingFormType = null;
-    let pendingDeleteIndex = null;
-    const demoNotes = [];
+    let currentBooking = null, currentBookingKey = null;
+    let pendingFormType = null, pendingDeleteIndex = null;
+    const bookingNotes = {};
 
-    // Status-Hilfsfunktionen
-    function getStatusKey(d, type, name, apt) { return `status-${d}-${type}-${name}-${apt}`; }
+    // Hilfsfunktionen
+    function getBookingKey(b) {
+      return `${b.guestName}_${b.apartmentName}_${b.checkTime}`;
+    }
+    function getStatusKey(d, type, name, apt) {
+      return `status-${d}-${type}-${name}-${apt}`;
+    }
     function getStoredStatus(key) { return localStorage.getItem(key); }
-    function storeStatus(key, val) { localStorage.setItem(key, val); }
-    function toggleStatus(type, cur) { return type==='checkin'? (cur==='ready'?'not ready':'ready') : (cur==='clean'?'not clean':'clean'); }
-    function statusClass(type, status) {
+    function storeStatus(key,val) { localStorage.setItem(key,val); }
+    function toggleStatus(type,cur) {
+      return type==='checkin'
+        ? (cur==='ready' ? 'not ready' : 'ready')
+        : (cur==='clean' ? 'not clean' : 'clean');
+    }
+    function statusClass(type,status) {
       const base="px-3 py-1 text-xs font-semibold rounded-full border ";
-      const good = (type==='checkin'&&status==='ready')||(type==='checkout'&&status==='clean');
-      return base+(good?'text-green-600 border-green-600':'text-red-600 border-red-600');
+      const good=(type==='checkin'&&status==='ready')||(type==='checkout'&&status==='clean');
+      return base + (good?'text-green-600 border-green-600':'text-red-600 border-red-600');
     }
     function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // === showModal angepasst, damit currentStatus immer korrekt aus badge gelesen wird ===
+    function showModal(type, _status, badge, key) {
+      currentStatus = badge.textContent.trim();
+      newStatus = toggleStatus(type, currentStatus);
+      badgeRef = badge;
+      keyRef = key;
+      typeRef = type;
+      document.getElementById('modalMessage').textContent =
+        `Status von "${currentStatus}" zu "${newStatus}" ändern?`;
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
+    // === Note-Modal Funktionen ===
     function showNoteModal(type) {
-      pendingFormType=type;
-      document.getElementById('noteModalTitle').textContent = type==='Damage'? 'Beschädigung hinzufügen':'Fundgegenstand hinzufügen';
-      document.getElementById('noteText').value='';
-      document.getElementById('notePhoto').value='';
+      pendingFormType = type;
+      document.getElementById('noteModalTitle').textContent =
+        type==='Damage' ? 'Beschädigung hinzufügen' : 'Fundgegenstand hinzufügen';
+      document.getElementById('noteText').value = '';
+      document.getElementById('notePhoto').value = '';
       document.getElementById('noteModal').classList.remove('hidden');
     }
-    function showDeleteModal(i) { pendingDeleteIndex=i; document.getElementById('deleteModal').classList.remove('hidden'); }
     function renderNotes() {
-      const ul=document.getElementById('specialNotes'); ul.innerHTML='';
-      if(demoNotes.length===0) { ul.innerHTML='<li class="italic text-gray-500">Keine Einträge</li>'; return; }
-      demoNotes.forEach((note,i)=>{
-        const li=document.createElement('li');
-        li.className='bg-white border border-gray-300 p-4 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start gap-4';
-        const divText=document.createElement('div'); divText.className='flex-1'; divText.innerHTML=`<strong>${note.type}:</strong> ${note.text}`;
+      const ul = document.getElementById('specialNotes');
+      ul.innerHTML = '';
+      const notes = bookingNotes[currentBookingKey] || [];
+      if (notes.length === 0) {
+        ul.innerHTML = '<li class="italic text-gray-500">Keine Einträge</li>';
+        return;
+      }
+      notes.forEach((note,i) => {
+        const li = document.createElement('li');
+        li.className = 'bg-white border border-gray-300 p-4 rounded-xl shadow-sm flex flex-col md:flex-row justify-between items-start gap-4';
+        const divText = document.createElement('div');
+        divText.className = 'flex-1';
+        divText.innerHTML = `<strong>${note.type}:</strong> ${note.text}`;
         li.appendChild(divText);
-        if(note.photo){ const img=document.createElement('img'); img.src=note.photo; img.alt=note.type; img.className='w-24 h-24 object-cover rounded-lg border'; li.appendChild(img);}        
-        const btn=document.createElement('button'); btn.className='text-red-500 hover:text-red-700 self-end'; btn.title='Löschen'; btn.innerHTML='<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
-        btn.addEventListener('click',()=>showDeleteModal(i)); li.appendChild(btn);
+        if (note.photo) {
+          const img = document.createElement('img');
+          img.src = note.photo;
+          img.alt = note.type;
+          img.className = 'w-24 h-24 object-cover rounded-lg border';
+          li.appendChild(img);
+        }
+        const btn = document.createElement('button');
+        btn.className = 'text-red-500 hover:text-red-700 self-end';
+        btn.title = 'Löschen';
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>' +
+                        '</svg>';
+        btn.addEventListener('click', () => {
+          pendingDeleteIndex = i;
+          document.getElementById('deleteModal').classList.remove('hidden');
+        });
+        li.appendChild(btn);
         ul.appendChild(li);
       });
     }
 
-    // Modal-Steuerung
-    function showModal(type,status,badge,key){ currentStatus=status; newStatus=toggleStatus(type,status); badgeRef=badge; keyRef=key; typeRef=type; document.getElementById('modalMessage').textContent=`Status von "${currentStatus}" zu "${newStatus}" ändern?`; document.getElementById('confirmModal').classList.remove('hidden'); }
+    // === Initialisierung & Modal-Handler ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('datum');
+      input.value = new Date().toISOString().slice(0,10);
+      ladeCheckinsUndCheckouts(input.value);
 
-    // Detailansicht
+      document.getElementById('prevDay').addEventListener('click', () => {
+        const d = new Date(input.value); d.setDate(d.getDate()-1);
+        input.value = d.toISOString().slice(0,10);
+        ladeCheckinsUndCheckouts(input.value);
+      });
+      document.getElementById('nextDay').addEventListener('click', () => {
+        const d = new Date(input.value); d.setDate(d.getDate()+1);
+        input.value = d.toISOString().slice(0,10);
+        ladeCheckinsUndCheckouts(input.value);
+      });
+      input.addEventListener('change', () => ladeCheckinsUndCheckouts(input.value));
+
+      // Status-Modal Buttons
+      document.getElementById('modalCancel').addEventListener('click', ()=>hideModal('confirmModal'));
+      document.getElementById('modalConfirm').addEventListener('click', ()=> {
+        badgeRef.textContent = newStatus;
+        badgeRef.className = 'status ' + statusClass(typeRef,newStatus);
+        storeStatus(keyRef,newStatus);
+        hideModal('confirmModal');
+      });
+
+      // Note-Modal Buttons
+      document.getElementById('noteCancel').addEventListener('click', ()=>hideModal('noteModal'));
+      document.getElementById('noteSave').addEventListener('click', ()=> {
+        const t = document.getElementById('noteText').value.trim();
+        if (!t) { alert('Bitte Beschreibung eingeben.'); return; }
+        let p = null;
+        const f = document.getElementById('notePhoto').files[0];
+        if (f) p = URL.createObjectURL(f);
+        if (!bookingNotes[currentBookingKey]) bookingNotes[currentBookingKey] = [];
+        bookingNotes[currentBookingKey].push({ type: pendingFormType, text: t, photo: p });
+        renderNotes();
+        hideModal('noteModal');
+      });
+
+      document.getElementById('addDamage').addEventListener('click', ()=>showNoteModal('Damage'));
+      document.getElementById('addFoundItem').addEventListener('click', ()=>showNoteModal('Found Item'));
+
+      // Delete-Modal
+      document.getElementById('deleteCancel').addEventListener('click', ()=>hideModal('deleteModal'));
+      document.getElementById('deleteConfirm').addEventListener('click', ()=> {
+        if (bookingNotes[currentBookingKey] && pendingDeleteIndex!==null) {
+          bookingNotes[currentBookingKey].splice(pendingDeleteIndex,1);
+          renderNotes();
+        }
+        hideModal('deleteModal');
+      });
+
+      // Zurück zur Übersicht
+      document.getElementById('backToOverview').addEventListener('click', ()=> {
+        document.getElementById('detailPage').classList.add('hidden');
+        document.getElementById('overviewPage').classList.remove('hidden');
+        ladeCheckinsUndCheckouts(document.getElementById('datum').value);
+      });
+    });
+
+    // === Detailansicht öffnen ===
     function showDetailPage(b) {
-      currentBooking=b;
-      const d=document.getElementById('datum').value;
-      const key=getStatusKey(d,'checkout',b.guestName,b.apartmentName);
-      const st=getStoredStatus(key)||'not clean';
+      currentBooking = b;
+      currentBookingKey = getBookingKey(b);
+      const d = document.getElementById('datum').value;
+      const key = getStatusKey(d,'checkout',b.guestName,b.apartmentName);
+      const st = getStoredStatus(key) || 'not clean';
       document.getElementById('overviewPage').classList.add('hidden');
       document.getElementById('detailPage').classList.remove('hidden');
-      document.getElementById('bookingDetail').innerHTML=`
+      document.getElementById('bookingDetail').innerHTML = `
         <div>
           <div class="text-sm text-gray-800">${b.guestName}</div>
           <div class="text-base text-gray-800 font-bold">${b.apartmentName}</div>
           <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center">
-            <div class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${b.checkTime}</div>
-            <div class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>${b.guests} Pers.</div>
+            <div class="flex items-center gap-1">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>${b.checkTime}
+            </div>
+            <div class="flex items-center gap-1">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>${b.guests} Pers.
+            </div>
             ${b.babybed?'<div class="text-xs bg-pink-50 text-pink-700 px-2 py-1 rounded border border-pink-700">Babybett</div>':''}
           </div>
         </div>
         <div id="detailStatus" class="status cursor-pointer ${statusClass('checkout',st)}">${st}</div>
       `;
-      document.getElementById('detailStatus').addEventListener('click',()=>showModal('checkout',st,document.getElementById('detailStatus'),key));
+      document.getElementById('detailStatus').addEventListener('click', ()=> 
+        showModal('checkout', null, document.getElementById('detailStatus'), key)
+      );
       renderNotes();
     }
 
-    // Initialisierung
-    document.addEventListener('DOMContentLoaded',()=>{
-      const input=document.getElementById('datum'); input.value=new Date().toISOString().slice(0,10);
-      ladeCheckinsUndCheckouts(input.value);
-      document.getElementById('prevDay').addEventListener('click',()=>{const d=new Date(input.value);d.setDate(d.getDate()-1);input.value=d.toISOString().slice(0,10);ladeCheckinsUndCheckouts(input.value);} );
-      document.getElementById('nextDay').addEventListener('click',()=>{const d=new Date(input.value);d.setDate(d.getDate()+1);input.value=d.toISOString().slice(0,10);ladeCheckinsUndCheckouts(input.value);} );
-      input.addEventListener('change',()=>ladeCheckinsUndCheckouts(input.value));
-      document.getElementById('backToOverview').addEventListener('click',()=>{document.getElementById('detailPage').classList.add('hidden');document.getElementById('overviewPage').classList.remove('hidden');ladeCheckinsUndCheckouts(document.getElementById('datum').value);} );
-      document.getElementById('modalCancel').addEventListener('click',()=>hideModal('confirmModal'));
-      document.getElementById('modalConfirm').addEventListener('click',()=>{badgeRef.textContent=newStatus;badgeRef.className='status '+statusClass(typeRef,newStatus);storeStatus(keyRef,newStatus);hideModal('confirmModal');});
-      document.getElementById('noteCancel').addEventListener('click',()=>hideModal('noteModal'));
-      document.getElementById('noteSave').addEventListener('click',()=>{const t=document.getElementById('noteText').value.trim();if(!t){alert('Bitte Beschreibung eingeben.');return;}let p=null;const f=document.getElementById('notePhoto').files[0];if(f)p=URL.createObjectURL(f);demoNotes.push({type:pendingFormType,text:t,photo:p});renderNotes();hideModal('noteModal');});
-      document.getElementById('addDamage').addEventListener('click',()=>showNoteModal('Damage'));
-      document.getElementById('addFoundItem').addEventListener('click',()=>showNoteModal('Found Item'));
-      document.getElementById('deleteCancel').addEventListener('click',()=>hideModal('deleteModal'));
-      document.getElementById('deleteConfirm').addEventListener('click',()=>{if(pendingDeleteIndex!==null){demoNotes.splice(pendingDeleteIndex,1);renderNotes();}hideModal('deleteModal');});
-    });
+    // === Übersicht laden ===
+    async function ladeCheckinsUndCheckouts(datum) {
+      document.getElementById('loading').style.display = 'block';
+      try {
+        const res = await fetch(`/api/checkins-checkouts?datum=${datum}`);
+        const data = await res.json();
+        const ciList = document.getElementById('checkinsList');
+        const coList = document.getElementById('checkoutsList');
+        document.getElementById('countCheckins').textContent = `(${data.checkins.length})`;
+        document.getElementById('countCheckouts').textContent = `(${data.checkouts.length})`;
+        ciList.innerHTML = ''; coList.innerHTML = '';
+        document.getElementById('checkinsEmpty').style.display = data.checkins.length===0?'block':'none';
+        document.getElementById('checkoutsEmpty').style.display = data.checkouts.length===0?'block':'none';
 
-    // Daten laden
-    async function ladeCheckinsUndCheckouts(datum){
-      document.getElementById('loading').style.display='block';
-      try{
-        const res=await fetch(`/api/checkins-checkouts?datum=${datum}`);
-        const data=await res.json();
-        const ciList=document.getElementById('checkinsList');
-        const coList=document.getElementById('checkoutsList');
-        document.getElementById('countCheckins').textContent=`(${data.checkins.length})`;
-        document.getElementById('countCheckouts').textContent=`(${data.checkouts.length})`;
-        ciList.innerHTML='';coList.innerHTML='';
-        document.getElementById('checkinsEmpty').style.display=data.checkins.length===0?'block':'none';
-        document.getElementById('checkoutsEmpty').style.display=data.checkouts.length===0?'block':'none';
-        
-        function createEntry(e, type) {
-  const datum = document.getElementById('datum').value;
-  const key = `status-${datum}-${type}-${e.guestName}-${e.apartmentName}`;
-  const st = localStorage.getItem(key) || (type === 'checkin' ? 'not ready' : 'not clean');
+        function createEntry(e,type) {
+          const datum=document.getElementById('datum').value;
+          const key=getStatusKey(datum,type,e.guestName,e.apartmentName);
+          const st=getStoredStatus(key)||(type==='checkin'?'not ready':'not clean');
 
-  const li = document.createElement('li');
-  li.className = 'bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer flex justify-between items-center transform transition active:scale-[0.97]';
+          const li=document.createElement('li');
+          li.className='bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer flex justify-between items-center';
 
-  const checkTime = e.checkTime || '';
+          const checkTime=e.checkTime||'';
+          let timeElement='';
+          if(type==='checkin'&&checkTime.startsWith('12')) {
+            timeElement=`<div class="inline-block text-xs font-semibold text-blue-700 border border-blue-700 px-2 py-1 rounded bg-blue-50">Early Check-in ${checkTime} Uhr</div>`;
+          } else if(type==='checkout'&&checkTime.startsWith('13')) {
+            timeElement=`<div class="inline-block text-xs font-semibold text-purple-700 border border-purple-700 px-2 py-1 rounded bg-purple-50">Late Check-out ${checkTime} Uhr</div>`;
+          } else {
+            timeElement=`<div class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${checkTime||'n/a'}</div>`;
+          }
+          const babybedBadge=e.babybed
+            ?'<div class="inline-block text-xs font-semibold text-pink-700 border border-pink-700 px-2 py-1 rounded bg-pink-50">Babybett</div>'
+            :'';
 
-  // Zeit-Badge ODER Uhrzeit mit Icon
-  let timeElement = '';
-  if (type === 'checkin' && checkTime.startsWith('12')) {
-    timeElement = `
-      <div class="inline-block text-xs font-semibold text-blue-700 border border-blue-700 px-2 py-1 rounded bg-blue-50">
-        Early Check-in ${checkTime} Uhr
-      </div>`;
-  } else if (type === 'checkout' && checkTime.startsWith('13')) {
-    timeElement = `
-      <div class="inline-block text-xs font-semibold text-purple-700 border border-purple-700 px-2 py-1 rounded bg-purple-50">
-        Late Check-out ${checkTime} Uhr
-      </div>`;
-  } else {
-    timeElement = `
-      <div class="flex items-center gap-1">
-        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        ${checkTime || 'n/a'}
-      </div>`;
-  }
+          li.innerHTML=`
+            <div>
+              <div class="text-sm text-gray-500">${e.guestName}</div>
+              <div class="font-medium">${e.apartmentName}</div>
+              <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center flex-wrap">
+                ${timeElement}
+                <div class="flex items-center gap-1"><svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>${e.guests||1} Pers.</div>
+              </div>
+              ${babybedBadge}
+            </div>
+            <div class="status ${statusClass(type,st)}">${st}</div>
+          `;
 
-  // Babybett kompakt
-  const babybedBadge = e.babybed
-    ? '<div class="inline-block text-xs font-semibold text-pink-700 border border-pink-700 px-2 py-1 rounded bg-pink-50">Babybett</div>'
-    : '';
+          const badge=li.querySelector('.status');
+          li.addEventListener('click',()=>{
+            if(type==='checkout'){
+              showDetailPage(e);
+            } else {
+              showModal(type,null,badge,key);
+            }
+          });
 
-  li.innerHTML = `
-    <div>
-      <div class="text-sm text-gray-500">${e.guestName}</div>
-      <div class="font-medium">${e.apartmentName}</div>
-      <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center flex-wrap">
-        ${timeElement}
-        <div class="flex items-center gap-1">
-          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          ${e.guests || 1} Pers.
-        </div>
-      </div>
-      ${babybedBadge}
-    </div>
-    <div class="status ${statusClass(type, st)}">${st}</div>
-  `;
-
-  const badge = li.querySelector('.status');
-  li.addEventListener('click', () => {
-    if (type === 'checkout') {
-      showDetailPage(e);
-    } else {
-      showModal(type, st, badge, key);
-    }
-  });
-
-  return li;
-}
-
-
+          return li;
+        }
 
         data.checkins.forEach(e=>ciList.appendChild(createEntry(e,'checkin')));
         data.checkouts.forEach(e=>coList.appendChild(createEntry(e,'checkout')));
-      }catch(err){alert('Fehler beim Laden der Daten');console.error(err);}finally{document.getElementById('loading').style.display='none';}
+      } catch(err) {
+        alert('Fehler beim Laden der Daten');
+        console.error(err);
+      } finally {
+        document.getElementById('loading').style.display='none';
+      }
     }
   </script>
 </body>
 </html>
+
 
 
 
