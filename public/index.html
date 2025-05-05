@@ -12,14 +12,23 @@
     <!-- Übersicht -->
     <div id="overviewPage">
       <h1 class="text-3xl font-bold text-center mb-8">ROOMS Daily Cleaning Plan</h1>
+<div class="max-w-4xl mx-auto relative">
+  <div class="flex items-center justify-center gap-4 mb-10">
+    <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
+    <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
+    <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
+  </div>
 
-      <div class="flex items-center justify-center gap-4 mb-10">
-        <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
-        <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
-        <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
-      </div>
+  <div id="loading" class="absolute top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded shadow text-gray-600 text-sm hidden z-50">
+    <svg class="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+  </div>
+</div>
 
-      <div id="loading" class="text-center text-gray-500 mb-6 hidden">Lade Daten...</div>
+
+
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
         <div>
@@ -207,48 +216,76 @@
         ciList.innerHTML='';coList.innerHTML='';
         document.getElementById('checkinsEmpty').style.display=data.checkins.length===0?'block':'none';
         document.getElementById('checkoutsEmpty').style.display=data.checkouts.length===0?'block':'none';
-        function createEntry(e,type){
-          const key=getStatusKey(datum,type,e.guestName,e.apartmentName);
-          const st=getStoredStatus(key)||(type==='checkin'?'not ready':'not clean');
-          const li=document.createElement('li');
-          li.className='bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer flex justify-between items-center transform transition active:scale-[0.97]';
-          // Time Badge
-          const timeBadge=(type==='checkin'&&e.checkTime==='12:00')
-            ?'<div class="text-xs font-semibold text-blue-700 border border-blue-700 px-2 py-1 rounded bg-blue-50">Early Check-in 12:00</div>'
-            :(type==='checkout'&&e.checkTime==='13:00')
-            ?'<div class="text-xs font-semibold text-purple-700 border border-purple-700 px-2 py-1 rounded bg-purple-50">Late Check-out 13:00</div>'
-            :`<div class="text-sm text-gray-400">${e.checkTime||'n/a'}</div>`;
-          // Babybett Badge
-          const babybedBadge=e.babybed?'<div class="text-xs font-semibold text-pink-700 border border-pink-700 px-2 py-1 rounded bg-pink-50 mt-1">Babybett</div>':'';
-          // Inner HTML
-        li.innerHTML=`
-  <div>
-   <div class="text-sm text-gray-500">${e.guestName}</div>
-<div class="font-medium">${e.apartmentName}</div>
+        
+        function createEntry(e, type) {
+  const datum = document.getElementById('datum').value;
+  const key = `status-${datum}-${type}-${e.guestName}-${e.apartmentName}`;
+  const st = localStorage.getItem(key) || (type === 'checkin' ? 'not ready' : 'not clean');
 
-    <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center flex-wrap">
+  const li = document.createElement('li');
+  li.className = 'bg-gray-50 p-4 rounded-xl shadow-sm cursor-pointer flex justify-between items-center transform transition active:scale-[0.97]';
+
+  const checkTime = e.checkTime || '';
+
+  // Zeit-Badge ODER Uhrzeit mit Icon
+  let timeElement = '';
+  if (type === 'checkin' && checkTime.startsWith('12')) {
+    timeElement = `
+      <div class="inline-block text-xs font-semibold text-blue-700 border border-blue-700 px-2 py-1 rounded bg-blue-50">
+        Early Check-in ${checkTime} Uhr
+      </div>`;
+  } else if (type === 'checkout' && checkTime.startsWith('13')) {
+    timeElement = `
+      <div class="inline-block text-xs font-semibold text-purple-700 border border-purple-700 px-2 py-1 rounded bg-purple-50">
+        Late Check-out ${checkTime} Uhr
+      </div>`;
+  } else {
+    timeElement = `
       <div class="flex items-center gap-1">
         <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        ${e.checkTime || 'n/a'}
-      </div>
-      <div class="flex items-center gap-1">
-        <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        ${e.guests || 1} Pers.
-      </div>
-    </div>
-    ${babybedBadge}
-  </div>
-  <div class="status ${statusClass(type,st)}">${st}</div>
-`;
+        ${checkTime || 'n/a'}
+      </div>`;
+  }
 
-          const badge=li.querySelector('.status');
-          li.addEventListener('click',()=>{if(type==='checkout')showDetailPage(e);else showModal(type,st,badge,key);});
-          return li;
-        }
+  // Babybett kompakt
+  const babybedBadge = e.babybed
+    ? '<div class="inline-block text-xs font-semibold text-pink-700 border border-pink-700 px-2 py-1 rounded bg-pink-50">Babybett</div>'
+    : '';
+
+  li.innerHTML = `
+    <div>
+      <div class="text-sm text-gray-500">${e.guestName}</div>
+      <div class="font-medium">${e.apartmentName}</div>
+      <div class="flex gap-4 mt-1 text-sm text-gray-600 items-center flex-wrap">
+        ${timeElement}
+        <div class="flex items-center gap-1">
+          <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A10.97 10.97 0 0112 16c2.347 0 4.515.754 6.26 2.03M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          ${e.guests || 1} Pers.
+        </div>
+      </div>
+      ${babybedBadge}
+    </div>
+    <div class="status ${statusClass(type, st)}">${st}</div>
+  `;
+
+  const badge = li.querySelector('.status');
+  li.addEventListener('click', () => {
+    if (type === 'checkout') {
+      showDetailPage(e);
+    } else {
+      showModal(type, st, badge, key);
+    }
+  });
+
+  return li;
+}
+
+
+
         data.checkins.forEach(e=>ciList.appendChild(createEntry(e,'checkin')));
         data.checkouts.forEach(e=>coList.appendChild(createEntry(e,'checkout')));
       }catch(err){alert('Fehler beim Laden der Daten');console.error(err);}finally{document.getElementById('loading').style.display='none';}
@@ -256,5 +293,6 @@
   </script>
 </body>
 </html>
+
 
 
