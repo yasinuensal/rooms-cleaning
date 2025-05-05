@@ -7,113 +7,148 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-white text-gray-800 font-sans p-6">
-  <div class="max-w-4xl mx-auto">
 
-    <!-- Übersicht -->
-    <div id="overviewPage">
-      <h1 class="text-3xl font-bold text-center mb-8">ROOMS Daily Cleaning Plan</h1>
-      <div class="max-w-4xl mx-auto relative">
-        <div class="flex items-center justify-center gap-4 mb-10">
-          <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
-          <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
-          <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
-        </div>
-        <div id="loading" class="absolute top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded shadow text-gray-600 text-sm hidden z-50">
-          <svg class="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-        <div>
-          <h2 class="text-xl font-semibold flex items-center gap-2">
-            <span>Check-outs</span>
-            <span id="countCheckouts" class="text-gray-500 font-normal text-base ml-2">(0)</span>
-          </h2>
-          <p id="checkoutsEmpty" class="italic text-gray-500 hidden">Keine Check-outs</p>
-          <ul id="checkoutsList" class="space-y-2"></ul>
-        </div>
-        <div>
-          <h2 class="text-xl font-semibold flex items-center gap-2">
-            <span>Check-ins</span>
-            <span id="countCheckins" class="text-gray-500 font-normal text-base ml-2">(0)</span>
-          </h2>
-          <p id="checkinsEmpty" class="italic text-gray-500 hidden">Keine Check-ins</p>
-          <ul id="checkinsList" class="space-y-2"></ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detailansicht -->
-    <div id="detailPage" class="hidden">
-      <button id="backToOverview" class="mb-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold shadow">
-        Zurück zur Übersicht
+  <!-- LOGIN-OVERLAY -->
+  <div id="loginPage" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 w-full max-w-sm">
+      <h2 class="text-2xl font-bold mb-6 text-center">Bitte einloggen</h2>
+      <label class="block mb-2">
+        <span class="text-sm font-medium">Benutzername</span>
+        <input id="loginUser" type="text" class="mt-1 block w-full border rounded px-3 py-2" />
+      </label>
+      <label class="block mb-4">
+        <span class="text-sm font-medium">Passwort</span>
+        <input id="loginPass" type="password" class="mt-1 block w-full border rounded px-3 py-2" />
+      </label>
+      <button id="loginBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        Einloggen
       </button>
-      <h2 class="text-2xl font-bold mb-4">Buchung Detail</h2>
-
-      <div id="bookingDetail" class="bg-gray-50 p-4 rounded-xl shadow mb-6 flex justify-between items-center">
-        <!-- Dynamisch per JS -->
-      </div>
-
-      <div class="flex gap-4 mb-6">
-        <button id="addDamage" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Add Damage</button>
-        <button id="addFoundItem" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add Found Item</button>
-      </div>
-
-      <div>
-        <h3 class="text-xl font-semibold mb-2">Besonderheiten</h3>
-        <ul id="specialNotes" class="space-y-4"></ul>
-      </div>
     </div>
-
-    <!-- Status-Änderungs-Modal -->
-    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-      <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
-        <h3 class="text-lg font-semibold mb-4">Status ändern?</h3>
-        <p id="modalMessage" class="text-sm text-gray-600 mb-6"></p>
-        <div class="flex justify-center gap-4">
-          <button id="modalCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
-          <button id="modalConfirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ja, ändern</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Note-Modal -->
-    <div id="noteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-      <div class="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
-        <h3 id="noteModalTitle" class="text-xl font-semibold mb-4">Eintrag hinzufügen</h3>
-        <div class="mb-4">
-          <label for="noteText" class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
-          <input type="text" id="noteText" class="w-full border rounded px-3 py-2" />
-        </div>
-        <div class="mb-4">
-          <label for="notePhoto" class="block text-sm font-medium text-gray-700 mb-1">Foto (optional)</label>
-          <input type="file" id="notePhoto" accept="image/*" class="w-full" />
-        </div>
-        <div class="flex justify-end gap-4">
-          <button id="noteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
-          <button id="noteSave" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Speichern</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete-Modal -->
-    <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-      <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
-        <h3 class="text-lg font-semibold mb-4">Eintrag löschen?</h3>
-        <p class="text-sm text-gray-600 mb-6">Soll dieser Eintrag wirklich gelöscht werden?</p>
-        <div class="flex justify-center gap-4">
-          <button id="deleteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
-          <button id="deleteConfirm" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Löschen</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 
+  <!-- APP CONTENT (erst nach Login sichtbar) -->
+  <div id="appContent" class="hidden">
+    <div class="max-w-4xl mx-auto">
+
+      <!-- Übersicht -->
+      <div id="overviewPage">
+        <h1 class="text-3xl font-bold text-center mb-8">ROOMS Daily Cleaning Plan</h1>
+        <div class="max-w-4xl mx-auto relative">
+          <div class="flex items-center justify-center gap-4 mb-10">
+            <button id="prevDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&larr;</button>
+            <input type="date" id="datum" class="border rounded px-4 py-2 text-lg shadow" />
+            <button id="nextDay" class="text-2xl px-3 py-1 rounded hover:bg-gray-100">&rarr;</button>
+          </div>
+          <div id="loading" class="absolute top-16 left-1/2 -translate-x-1/2 bg-white px-4 py-2 rounded shadow text-gray-600 text-sm hidden z-50">
+            <svg class="animate-spin h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
+          <div>
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <span>Check-outs</span>
+              <span id="countCheckouts" class="text-gray-500 font-normal text-base ml-2">(0)</span>
+            </h2>
+            <p id="checkoutsEmpty" class="italic text-gray-500 hidden">Keine Check-outs</p>
+            <ul id="checkoutsList" class="space-y-2"></ul>
+          </div>
+          <div>
+            <h2 class="text-xl font-semibold flex items-center gap-2">
+              <span>Check-ins</span>
+              <span id="countCheckins" class="text-gray-500 font-normal text-base ml-2">(0)</span>
+            </h2>
+            <p id="checkinsEmpty" class="italic text-gray-500 hidden">Keine Check-ins</p>
+            <ul id="checkinsList" class="space-y-2"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailansicht -->
+      <div id="detailPage" class="hidden">
+        <button id="backToOverview" class="mb-6 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-semibold shadow">
+          Zurück zur Übersicht
+        </button>
+        <h2 class="text-2xl font-bold mb-4">Buchung Detail</h2>
+
+        <div id="bookingDetail" class="bg-gray-50 p-4 rounded-xl shadow mb-6 flex justify-between items-center">
+          <!-- Dynamisch per JS -->
+        </div>
+
+        <div class="flex gap-4 mb-6">
+          <button id="addDamage" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Add Damage</button>
+          <button id="addFoundItem" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Add Found Item</button>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-semibold mb-2">Besonderheiten</h3>
+          <ul id="specialNotes" class="space-y-4"></ul>
+        </div>
+      </div>
+
+      <!-- Modals -->
+      <!-- Status-Änderungs-Modal -->
+      <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
+          <h3 class="text-lg font-semibold mb-4">Status ändern?</h3>
+          <p id="modalMessage" class="text-sm text-gray-600 mb-6"></p>
+          <div class="flex justify-center gap-4">
+            <button id="modalCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+            <button id="modalConfirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Ja, ändern</button>
+          </div>
+        </div>
+      </div>
+      <!-- Note-Modal -->
+      <div id="noteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
+          <h3 id="noteModalTitle" class="text-xl font-semibold mb-4">Eintrag hinzufügen</h3>
+          <div class="mb-4">
+            <label for="noteText" class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
+            <input type="text" id="noteText" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div class="mb-4">
+            <label for="notePhoto" class="block text-sm font-medium text-gray-700 mb-1">Foto (optional)</label>
+            <input type="file" id="notePhoto" accept="image/*" class="w-full" />
+          </div>
+          <div class="flex justify-end gap-4">
+            <button id="noteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+            <button id="noteSave" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Speichern</button>
+          </div>
+        </div>
+      </div>
+      <!-- Delete-Modal -->
+      <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
+          <h3 class="text-lg font-semibold mb-4">Eintrag löschen?</h3>
+          <p class="text-sm text-gray-600 mb-6">Soll dieser Eintrag wirklich gelöscht werden?</p>
+          <div class="flex justify-center gap-4">
+            <button id="deleteCancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Abbrechen</button>
+            <button id="deleteConfirm" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Löschen</button>
+          </div>
+        </div>
+      </div>
+
+    </div> <!-- Ende max-w-4xl -->
+
+  </div> <!-- Ende appContent -->
+
   <script>
+    // === LOGIN-LOGIK ===
+    const loginBtn  = document.getElementById('loginBtn'),
+          loginUser = document.getElementById('loginUser'),
+          loginPass = document.getElementById('loginPass');
+    loginBtn.addEventListener('click', () => {
+      if (loginUser.value === 'admin' && loginPass.value === 'geheim') {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('appContent').classList.remove('hidden');
+      } else {
+        alert('Ungültiger Benutzername oder Passwort.');
+      }
+    });
+
     // === Zustand & Buchungsspezifische Notizen ===
     let currentStatus, newStatus, badgeRef, keyRef, typeRef;
     let currentBooking = null, currentBookingKey = null;
@@ -141,19 +176,7 @@
     }
     function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    // === showModal angepasst, damit currentStatus immer korrekt aus badge gelesen wird ===
-    function showModal(type, _status, badge, key) {
-      currentStatus = badge.textContent.trim();
-      newStatus = toggleStatus(type, currentStatus);
-      badgeRef = badge;
-      keyRef = key;
-      typeRef = type;
-      document.getElementById('modalMessage').textContent =
-        `Status von "${currentStatus}" zu "${newStatus}" ändern?`;
-      document.getElementById('confirmModal').classList.remove('hidden');
-    }
-
-    // === Note-Modal Funktionen ===
+    // === Modals & Note-Logik ===
     function showNoteModal(type) {
       pendingFormType = type;
       document.getElementById('noteModalTitle').textContent =
@@ -162,6 +185,7 @@
       document.getElementById('notePhoto').value = '';
       document.getElementById('noteModal').classList.remove('hidden');
     }
+
     function renderNotes() {
       const ul = document.getElementById('specialNotes');
       ul.innerHTML = '';
@@ -187,9 +211,8 @@
         const btn = document.createElement('button');
         btn.className = 'text-red-500 hover:text-red-700 self-end';
         btn.title = 'Löschen';
-        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' +
-                        '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>' +
-                        '</svg>';
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">'
+                      + '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
         btn.addEventListener('click', () => {
           pendingDeleteIndex = i;
           document.getElementById('deleteModal').classList.remove('hidden');
@@ -217,7 +240,6 @@
       });
       input.addEventListener('change', () => ladeCheckinsUndCheckouts(input.value));
 
-      // Status-Modal Buttons
       document.getElementById('modalCancel').addEventListener('click', ()=>hideModal('confirmModal'));
       document.getElementById('modalConfirm').addEventListener('click', ()=> {
         badgeRef.textContent = newStatus;
@@ -226,7 +248,6 @@
         hideModal('confirmModal');
       });
 
-      // Note-Modal Buttons
       document.getElementById('noteCancel').addEventListener('click', ()=>hideModal('noteModal'));
       document.getElementById('noteSave').addEventListener('click', ()=> {
         const t = document.getElementById('noteText').value.trim();
@@ -243,7 +264,6 @@
       document.getElementById('addDamage').addEventListener('click', ()=>showNoteModal('Damage'));
       document.getElementById('addFoundItem').addEventListener('click', ()=>showNoteModal('Found Item'));
 
-      // Delete-Modal
       document.getElementById('deleteCancel').addEventListener('click', ()=>hideModal('deleteModal'));
       document.getElementById('deleteConfirm').addEventListener('click', ()=> {
         if (bookingNotes[currentBookingKey] && pendingDeleteIndex!==null) {
@@ -253,7 +273,6 @@
         hideModal('deleteModal');
       });
 
-      // Zurück zur Übersicht
       document.getElementById('backToOverview').addEventListener('click', ()=> {
         document.getElementById('detailPage').classList.add('hidden');
         document.getElementById('overviewPage').classList.remove('hidden');
@@ -261,7 +280,18 @@
       });
     });
 
-    // === Detailansicht öffnen ===
+    // === Modals für Status und Detail ===
+    function showModal(type,status,badge,key) {
+      currentStatus = badge.textContent.trim();
+      newStatus = toggleStatus(type,currentStatus);
+      badgeRef = badge;
+      keyRef = key;
+      typeRef = type;
+      document.getElementById('modalMessage').textContent =
+        `Status von "${currentStatus}" zu "${newStatus}" ändern?`;
+      document.getElementById('confirmModal').classList.remove('hidden');
+    }
+
     function showDetailPage(b) {
       currentBooking = b;
       currentBookingKey = getBookingKey(b);
@@ -291,7 +321,7 @@
         <div id="detailStatus" class="status cursor-pointer ${statusClass('checkout',st)}">${st}</div>
       `;
       document.getElementById('detailStatus').addEventListener('click', ()=> 
-        showModal('checkout', null, document.getElementById('detailStatus'), key)
+        showModal('checkout',null,document.getElementById('detailStatus'),key)
       );
       renderNotes();
     }
@@ -368,6 +398,7 @@
   </script>
 </body>
 </html>
+
 
 
 
