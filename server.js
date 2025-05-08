@@ -216,12 +216,12 @@ app.get('/api/status/:booking_id', async (req, res) => {
   }
 });
 
-app.use('/uploads', express.static('/uploads'));
-const fs = require('fs');
+// Statischer Pfad für hochgeladene Bilder
+const uploadPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadPath));
 
 // Stelle sicher, dass Upload-Verzeichnis existiert
-
-const uploadPath = '/uploads';
+const fs = require('fs');
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
