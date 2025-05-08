@@ -2,38 +2,50 @@ const express = require('express');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
-const app = express();
-const PORT = 3000;
+const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
+const app = express();
+const PORT = 3000;
+
+// === Upload-Ordner für Render ===
+const uploadPath = '/uploads'; // Render mountet das Volume direkt hier
+
+// Stelle sicher, dass der Ordner existiert (nur lokal nötig, auf Render ist er gemountet)
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// === Multer-Konfiguration ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, 'uploads')); // Speicherort
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + '-' + file.originalname;
     cb(null, uniqueName);
   }
 });
-
 const upload = multer({ storage });
 
+// === Statische Bereitstellung der Uploads ===
+app.use('/uploads', express.static(uploadPath));
 
-// Smoobu API-Key
+app.use(express.static('public'));
+app.use(express.json());
+
+// === Smoobu API-Key ===
 const API_KEY = 'MjZxE_RYZZr5uMlBJmk1R1TqhAKiW4oW';
 
-// PostgreSQL-Verbindung
+// === PostgreSQL-Verbindung ===
 const db = new Pool({
   host: 'i8d7.your-database.de',
   port: 5432,
   user: 'roomsz_1',
-  password: 'BQm8K3HYF6wCNchp', // <<< sicher aufbewahren!
+  password: 'BQm8K3HYF6wCNchp',
   database: 'roomsz_db1'
 });
-
-app.use(express.static('public'));
-app.use(express.json());
 
 // === Hilfsfunktionen ===
 function heutigesDatumISO() {
@@ -52,7 +64,7 @@ function istGueltigeBuchung(r, datum, feld) {
   );
 }
 
-// === API: Login ===
+// === Login ===
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -72,25 +84,21 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// === API: Checkins & Checkouts ===
+// === Checkins & Checkouts ===
 app.get('/api/checkins-checkouts', async (req, res) => {
   const datum = req.query.datum || heutigesDatumISO();
   console.log(`📅 Abfrage für Datum: ${datum}`);
 
   try {
     const url = `https://login.smoobu.com/api/reservations?from=${datum}&to=${datum}&pageSize=1000`;
-    const response = await axios.get(url, {
-      headers: { 'Api-Key': API_KEY }
-    });
-
+    const response = await axios.get(url, { headers: { 'Api-Key': API_KEY } });
     const daten = response.data;
     const buchungen = Array.isArray(daten) ? daten : daten.bookings || [];
-    console.log(`📦 Buchungen erhalten: ${buchungen.length}`);
 
     const checkins = buchungen
       .filter(r => istGueltigeBuchung(r, datum, 'arrival'))
       .map(r => ({
-        booking_id: r.id, // Smoobu-Buchungs-ID
+        booking_id: r.id,
         type: 'checkin',
         guestName: r['guest-name'],
         apartmentName: r.apartment?.name || 'Unbekannt',
@@ -102,7 +110,7 @@ app.get('/api/checkins-checkouts', async (req, res) => {
     const checkouts = buchungen
       .filter(r => istGueltigeBuchung(r, datum, 'departure'))
       .map(r => ({
-        booking_id: r.id, // Smoobu-Buchungs-ID
+        booking_id: r.id,
         type: 'checkout',
         guestName: r['guest-name'],
         apartmentName: r.apartment?.name || 'Unbekannt',
@@ -110,16 +118,14 @@ app.get('/api/checkins-checkouts', async (req, res) => {
         guests: (r.adults || 0) + (r.children || 0)
       }));
 
-    console.log(`✅ Check-ins: ${checkins.length} | Check-outs: ${checkouts.length}`);
     res.json({ checkins, checkouts });
-
   } catch (error) {
     console.error('❌ Fehler beim Abrufen:', error.response?.status || '', error.message);
     res.status(500).json({ error: 'Fehler beim Abrufen der Buchungsdaten' });
   }
 });
 
-// === API: Notizen speichern ===
+// === Notizen speichern ===
 app.post('/api/notes', async (req, res) => {
   const { booking_id, type, text, photo_url } = req.body;
 
@@ -139,7 +145,7 @@ app.post('/api/notes', async (req, res) => {
   }
 });
 
-// === API: Notizen abrufen ===
+// === Notizen abrufen ===
 app.get('/api/notes/:booking_id', async (req, res) => {
   const { booking_id } = req.params;
 
@@ -155,6 +161,7 @@ app.get('/api/notes/:booking_id', async (req, res) => {
   }
 });
 
+// === Upload Endpoint ===
 app.post('/api/upload', upload.single('photo'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Keine Datei hochgeladen' });
@@ -164,8 +171,7 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
   res.json({ url: fileUrl });
 });
 
-
-// === API: Notiz löschen ===
+// === Notiz löschen ===
 app.delete('/api/notes/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -178,6 +184,7 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
+// === Status speichern ===
 app.post('/api/status', async (req, res) => {
   const { booking_id, status } = req.body;
 
@@ -200,8 +207,8 @@ app.post('/api/status', async (req, res) => {
   }
 });
 
+// === Status abrufen ===
 app.get('/api/status/:booking_id', async (req, res) => {
-  console.log('📥 GET /api/status/:booking_id aufgerufen');
   const { booking_id } = req.params;
 
   try {
@@ -215,17 +222,6 @@ app.get('/api/status/:booking_id', async (req, res) => {
     res.status(500).json({ error: 'Fehler beim Abrufen' });
   }
 });
-
-// Statischer Pfad für hochgeladene Bilder
-const uploadPath = path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadPath));
-
-// Stelle sicher, dass Upload-Verzeichnis existiert
-const fs = require('fs');
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
 
 // === Serverstart ===
 app.listen(PORT, () => {
