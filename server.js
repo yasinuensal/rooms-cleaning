@@ -10,7 +10,7 @@ const app = express();
 const PORT = 3000;
 
 // === Upload-Ordner für Render ===
-const uploadPath = '/uploads'; // Render mountet das Volume direkt hier
+const uploadPath = path.resolve('/uploads'); // Render mountet das Volume direkt hier
 
 // Stelle sicher, dass der Ordner existiert (nur lokal nötig, auf Render ist er gemountet)
 if (!fs.existsSync(uploadPath)) {
@@ -206,6 +206,18 @@ app.post('/api/status', async (req, res) => {
     res.status(500).json({ error: 'Fehler beim Speichern des Status' });
   }
 });
+
+app.post('/api/upload', upload.single('photo'), (req, res) => {
+  if (!req.file) {
+    console.error('❌ Keine Datei im Request gefunden');
+    return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+  }
+
+  console.log('✅ Datei gespeichert:', req.file.path);
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
+});
+
 
 // === Status abrufen ===
 app.get('/api/status/:booking_id', async (req, res) => {
