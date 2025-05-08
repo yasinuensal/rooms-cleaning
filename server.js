@@ -195,12 +195,14 @@ app.post('/api/status', async (req, res) => {
 });
 
 app.post('/api/upload', upload.single('photo'), (req, res) => {
+  console.log('📥 Upload-Request erhalten');
+
   if (!req.file) {
-    console.error('❌ Keine Datei im Request gefunden');
+    console.error('❌ req.file ist undefined');
     return res.status(400).json({ error: 'Keine Datei hochgeladen' });
   }
 
-  console.log('✅ Datei gespeichert:', req.file.path);
+  console.log('✅ Datei empfangen:', req.file.originalname);
   const fileUrl = `/uploads/${req.file.filename}`;
   res.json({ url: fileUrl });
 });
