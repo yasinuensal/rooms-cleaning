@@ -216,7 +216,7 @@ app.get('/api/status/:booking_id', async (req, res) => {
   }
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('/uploads'));
 
 
 // === Serverstart ===
