@@ -217,6 +217,14 @@ app.get('/api/status/:booking_id', async (req, res) => {
 });
 
 app.use('/uploads', express.static('/uploads'));
+const fs = require('fs');
+
+// Stelle sicher, dass Upload-Verzeichnis existiert
+
+const uploadPath = '/uploads';
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
 
 
 // === Serverstart ===
