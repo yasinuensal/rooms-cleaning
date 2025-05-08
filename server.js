@@ -12,10 +12,6 @@ const PORT = 3000;
 // === Upload-Ordner für Render ===
 const uploadPath = path.resolve('/uploads'); // Render mountet das Volume direkt hier
 
-// Stelle sicher, dass der Ordner existiert (nur lokal nötig, auf Render ist er gemountet)
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
 
 // === Multer-Konfiguration ===
 const storage = multer.diskStorage({
@@ -161,15 +157,6 @@ app.get('/api/notes/:booking_id', async (req, res) => {
   }
 });
 
-// === Upload Endpoint ===
-app.post('/api/upload', upload.single('photo'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Keine Datei hochgeladen' });
-  }
-
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ url: fileUrl });
-});
 
 // === Notiz löschen ===
 app.delete('/api/notes/:id', async (req, res) => {
